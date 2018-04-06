@@ -1,0 +1,57 @@
+ version: '3.3'
+
+services:
+  mailcatcher:
+    image: schickling/mailcatcher
+    ports:
+      - "1080:1080"
+
+  mongo:
+    image: percona/percona-server-mongodb:3.4.3
+    ports:
+      - "27017:27017"
+      - "28017:28017"
+    command: mongod --storageEngine=inMemory --httpinterface --rest
+
+  #Mura Server
+  mura:
+    depends_on:
+      - mongo
+      - mailcatcher
+    build: ./
+    environment:
+      MURA_ENVIRONMENT: local
+      LUCEE_JAVA_OPTS: "-Djava.awt.headless=true -server -Xms512m -Xmx1024m"
+      MURA_ADMIN_USERNAME: admin
+      MURA_ADMIN_PASSWORD: ${MURA_ADMIN_PASSWORD:-admin}
+      MURA_ADMINEMAIL: ${MURA_ADMINEMAIL:-server.ops@companyname.com}
+      MURA_DATASOURCE: myproject
+      MURA_DATABASE: myproject-review
+      MURA_DBTYPE: mysql
+      MURA_DBUSERNAME: ${DBUSERNAME:-companyname}
+      MURA_DBPASSWORD: ${DBPASSWORD:-super_strong_password}
+      MURA_DBHOST: ${DBHOST:-mysql.myproject.com}
+      MURA_DBPORT: ${DBPORT:-3306}
+      MURA_SITEIDINURLS: "false"
+      MURA_INDEXFILEINURLS: "false"
+      MURA_ASSETDIR: "/s3assets"
+      MURA_ASSETPATH: "https://s3.amazonaws.com/bucket/"
+      MURA_FILEDIR: "/s3assets"
+      MURA_S3ASSETS: "s3://S3_KEY:S3_TOKEN@/bucket/"
+      MURA_PORT: ${WEB_PORT:-80}
+      MURA_CACHESERVER: mongo:27017
+      MURA_WKHTMLTOPDFSERVER: wkhtmltopdf
+      MURA_SMTP_HOST: mailcatcher
+      MURA_SMTP_PORT: 1025
+      MURA_SMTP_SSL: "false"
+      MURA_SMTP_TLS: "false"
+      MURA_CACHEIMAGEFILELOOKUPS: "true"
+      MURA_ADVANCEDCACHING: "true"
+      MURA_BROADCASTCACHEPURGES: "false"
+      MURA_AUTODISCOVERPLUGINS: "true"
+    volumes:
+        - ./:/var/www:cached
+    ports:
+        - "${WEB_PORT:-80}:8888"
+    healthcheck:
+      disable: true

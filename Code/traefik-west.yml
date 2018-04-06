@@ -1,0 +1,46 @@
+version: "3.5"
+services:
+  traefik:
+    image: traefik:v1.5.2
+    command:
+      - "--api"
+      - "--entrypoints=Name:http Address::80"
+      - "--entrypoints=Name:https Address::443 TLS"
+      - "--defaultentrypoints=http,https"
+      - "--acme"
+      - "--acme.storage=acme.json"
+      - "--acme.entryPoint=https"
+      - "--acme.httpChallenge.entryPoint=http"
+      - "--acme.OnHostRule=true"
+      - "--acme.onDemand=false"
+      - "--acme.email=youremail@blueriver.com
+      - "--docker"
+      - "--docker.swarmmode"
+      - "--docker.domain=companyname.com
+      - "--docker.watch"
+      - "--docker.exposedbydefault=false"
+      - "--logLevel=debug"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - frontend
+    ports:
+      - target: 80
+        published: 80
+      - target: 443
+        published: 443
+      - target: 8080
+        published: 8080
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+networks:
+  frontend:
+    external: true

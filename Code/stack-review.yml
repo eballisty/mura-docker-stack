@@ -1,0 +1,79 @@
+version: "3.5"
+services:
+  memcached:
+    image: memcached:1.4.37-alpine
+    networks:
+      - default
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 15s
+        order: start-first
+        failure_action: rollback
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  mura:
+    depends_on:
+      - memcached
+    image: companyname/myproject:review
+    networks:
+      - default
+      - frontend
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 15s
+        order: start-first
+        failure_action: rollback
+      resources:
+        limits:
+          memory: 1536M
+        reservations:
+          memory: 1024M
+      labels:
+        - "traefik.port=8888"
+        - "traefik.enable=true"
+        - "traefik.docker.network=frontend"
+        - "traefik.frontend.rule=Host:myproject-review.swarm-west.companyname.com"
+    stop_grace_period: 1m
+    environment:
+      MURA_ENVIRONMENT: review
+      LUCEE_JAVA_OPTS: "-Djava.awt.headless=true -server -Xms512m -Xmx1024m"
+      MURA_DATASOURCE: myproject
+      MURA_DATABASE: myproject-review
+      MURA_DBTYPE: mysql
+      MURA_DBUSERNAME: companyname
+      MURA_DBPASSWORD: super_strong_password
+      MURA_DBHOST: mysql.myproject.com
+      MURA_DBPORT: 3306
+      MURA_SITEIDINURLS: "false"
+      MURA_INDEXFILEINURLS: "false"
+      MURA_ASSETDIR: "/s3assets"
+      MURA_ASSETPATH: "https://s3.amazonaws.com/bucket/"
+      MURA_FILEDIR: "/s3assets"
+      MURA_S3ASSETS: "s3://S3_KEY:S3_TOKEN@/bucket/"
+      MURA_PORT: 80
+      MURA_CACHEIMAGEFILELOOKUPS: "true"
+      MURA_ADVANCEDCACHING: "true"
+      MURA_BROADCASTCACHEPURGES: "false"
+      MURA_FMSHOWAPPLICATIONROOT: "false"
+      MURA_FMSHOWSITEFILES: "false"
+      MURA_ALLOWAUTOUPDATES: "false"
+      MURA_CACHESERVER: global_mongo:27017
+      MURA_WKHTMLTOPDFSERVER: global_wkhtmltopdf
+      MURA_SMTP_HOST: outbox.myproject.com
+      MURA_SMTP_PORT: 25
+      MURA_SMTP_USERNAME: SES_KEY
+      MURA_SMTP_PASSWORD: SES_TOKEN
+      MURA_SMTP_SSL: "false"
+      MURA_SMTP_TLS: "true"
+
+networks:
+  frontend:
+    external: true
